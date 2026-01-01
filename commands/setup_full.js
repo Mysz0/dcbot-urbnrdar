@@ -1,10 +1,10 @@
-import { ChannelType, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { ChannelType, PermissionFlagsBits } from 'discord.js';
 import { roleColors } from '../config/colors.js';
 import { channelConfig, ensureCategory, ensureTextChannel } from '../config/channels.js';
 import postRuleMessages from '../utils/rules.js';
+import postWelcomeMessage from '../utils/postWelcome.js';
+import postVerifyMessage from '../utils/postVerify.js';
+import postRolesMessage from '../utils/postRoles.js';
 
 const PRESERVE_ROLES = ['@everyone', 'owner', 'player', 'admin', 'mod', 'staff', 'contributor', 'team', 'lead', 'dev', 'designer', 'manager', 'founder', 'creator', 'maintainer', 'support', 'Verified'];
 const CUSTOM_ROLES = [
@@ -90,74 +90,19 @@ async function postMessages(guild, createdRoles) {
   const verifyCh = guild.channels.cache.find(c => c.name === 'verify' && c.parentId === infoCat.id && c.type === ChannelType.GuildText);
 
   if (welcomeCh) {
-    try {
-      const welcomeEmbed = new EmbedBuilder()
-        .setTitle(`Welcome to ${guild.name}!`)
-        .setDescription('Start here:')
-        .addFields(
-          { name: 'Read', value: 'Please read the pinned message in #rules' },
-          { name: 'Get Access', value: 'Verify yourself in #verify and pick your color in #roles' },
-          { name: 'Need Help?', value: 'Ask in #help with context and screenshots' }
-        )
-        .setColor(0xA855F7)
-        .setFooter({ text: 'Our repo and docs: <link-to-repo>' });
-      const msg = await welcomeCh.send({ embeds: [welcomeEmbed] });
-      await msg.pin().catch(() => {});
-    } catch (e) {}
+    try { await postWelcomeMessage(welcomeCh, guild); } catch (e) {}
   }
 
   if (rulesCh) {
-    try {
-      await postRuleMessages(rulesCh, { pinIntro: true });
-    } catch (e) {}
+    try { await postRuleMessages(rulesCh, { pinIntro: true }); } catch (e) {}
   }
 
   if (rolesCh) {
-    try {
-      const colorRoles = Object.keys(roleColors);
-      const emojis = ['💚', '🔥', '💗', '❄️', '🌊', '🩵', '💜', '🌌', '✨', '⚫'];
-      const roleLines = colorRoles
-        .map((r, i) => `${emojis[i] || '•'} ${r}`)
-        .join('\n');
-      const roleAssignMsg = await rolesCh.send(
-        `React to pick ONE username color. Adding a new color removes the previous one.\n\n${roleLines}`
-      );
-
-      for (let i = 0; i < colorRoles.length && i < emojis.length; i++) {
-        try { await roleAssignMsg.react(emojis[i]); } catch (e) {}
-      }
-
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = path.dirname(__filename);
-      const dataPath = path.join(__dirname, '..', 'data', 'role-mappings.json');
-      let mappings = {};
-      try { mappings = JSON.parse(fs.readFileSync(dataPath, 'utf8') || '{}'); } catch (e) { mappings = {}; }
-      mappings[guild.id] = [];
-
-      for (let i = 0; i < colorRoles.length && i < emojis.length; i++) {
-        const roleName = colorRoles[i];
-        const emoji = emojis[i];
-        const roleId = createdRoles[roleName]?.id || '';
-        mappings[guild.id].push({ messageId: roleAssignMsg.id, emoji, roleId });
-      }
-
-      try { fs.writeFileSync(dataPath, JSON.stringify(mappings, null, 2)); } catch (e) {}
-    } catch (e) {}
+    try { await postRolesMessage(rolesCh, guild, createdRoles); } catch (e) {}
   }
 
   if (verifyCh) {
-    try {
-      const verifyEmbed = new EmbedBuilder()
-        .setTitle('Verify yourself')
-        .setDescription('Press the button below to verify yourself and access community channels. If you are already verified, you will see a confirmation message.')
-        .setColor(0x60A5FA);
-
-      const buttonRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('verify_button').setLabel('Verify').setStyle(ButtonStyle.Primary)
-      );
-
-      await verifyCh.send({ embeds: [verifyEmbed], components: [buttonRow] });
-    } catch (e) {}
+    try { await postVerifyMessage(verifyCh); } catch (e) {}
   }
 }
 
