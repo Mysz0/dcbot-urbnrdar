@@ -10,8 +10,7 @@ export default {
     if (!interaction.inGuild()) return interaction.reply({ content: 'Run this in a server.', ephemeral: true });
     const guild = interaction.guild;
     const member = interaction.member;
-    const verifiedRoleId = '1456090889024835685';
-    const result = await verifyUser(member, guild, verifiedRoleId);
+    const result = await verifyUser(member, guild);
     return interaction.reply({ content: result.message, ephemeral: true });
   }
 };

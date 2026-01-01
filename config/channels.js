@@ -65,7 +65,13 @@ export async function ensureTextChannel(guild, name, parent, options = {}) {
   const verifiedRole = guild.roles.cache.find(r => r.name === 'Verified');
   let overwrites = [];
 
-  if (options.verifyOnly) {
+  if (parent.name === 'information') {
+    // In information category: everyone can view, Verified cannot send
+    overwrites.push(
+      { id: everyoneRole.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory], deny: [PermissionFlagsBits.SendMessages] },
+      { id: verifiedRole?.id || everyoneRole.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory], deny: [PermissionFlagsBits.SendMessages] }
+    );
+  } else if (options.verifyOnly) {
     // #verify: @everyone can read, but can only interact with verify button
     overwrites.push(
       { id: everyoneRole.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory] },

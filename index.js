@@ -161,9 +161,8 @@ client.on('interactionCreate', async interaction => {
       if (interaction.customId === 'verify_button') {
         const guild = interaction.guild;
         const member = interaction.member;
-        const verifiedRoleId = '1456090889024835685';
         if (!guild || !member) return interaction.reply({ content: 'Cannot verify here.', ephemeral: true });
-        const result = await verifyUser(member, guild, verifiedRoleId);
+        const result = await verifyUser(member, guild);
         return interaction.reply({ content: result.message, ephemeral: true });
       }
     } catch (err) {
