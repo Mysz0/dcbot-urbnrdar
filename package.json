@@ -1,0 +1,13 @@
+{
+  "name": "urbanradar-discord-bot",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "register": "node register-commands.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.11.0",
+    "dotenv": "^16.1.4"
+  }
+}
