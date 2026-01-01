@@ -1,7 +1,9 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
 import dotenv from 'dotenv';
+import verifyUser from './utils/verifyUser.js';
 
 dotenv.config();
 
@@ -23,7 +25,8 @@ const client = new Client({
 
 client.commands = new Collection();
 
-const __dirname = path.dirname(new URL(import.meta.url).pathname.replace(/^\/+/, ''));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
 for (const file of commandFiles) {
@@ -64,6 +67,23 @@ client.on('messageReactionAdd', async (reaction, user) => {
     const guild = msg.guild;
     const member = await guild.members.fetch(user.id).catch(() => null);
     if (!member) return;
+
+    // Make roles on the same message mutually exclusive (e.g., color pickers)
+    const sameMessage = mappings.filter(m => String(m.messageId) === String(match.messageId) && m.roleId !== match.roleId);
+    if (sameMessage.length) {
+      // First, remove the user's other reactions on this message in parallel (this triggers role removal via messageReactionRemove)
+      const removePromises = sameMessage.map(other => {
+        const reactObj = msg.reactions.cache.find(r =>
+          r.emoji.name === other.emoji ||
+          r.emoji.id === other.emoji ||
+          r.emoji.toString() === other.emoji
+        );
+        return reactObj ? reactObj.users.remove(user.id).catch(() => null) : Promise.resolve();
+      });
+      await Promise.all(removePromises);
+    }
+
+    // Then add the new role
     await member.roles.add(match.roleId).catch(() => null);
   } catch (err) {
     console.error('reaction add handler error', err);
@@ -141,17 +161,10 @@ client.on('interactionCreate', async interaction => {
       if (interaction.customId === 'verify_button') {
         const guild = interaction.guild;
         const member = interaction.member;
+        const verifiedRoleId = '1456090889024835685';
         if (!guild || !member) return interaction.reply({ content: 'Cannot verify here.', ephemeral: true });
-        // find Verified role
-        const verified = guild.roles.cache.find(r => r.name.toLowerCase() === 'verified');
-        if (!verified) {
-          // try create
-          try { await guild.roles.create({ name: 'Verified', reason: 'Created by verify button' }); } catch (e) { }
-        }
-        const vrole = guild.roles.cache.find(r => r.name.toLowerCase() === 'verified');
-        if (!vrole) return interaction.reply({ content: 'Verified role not available. Ask an admin.', ephemeral: true });
-        await member.roles.add(vrole.id).catch(() => null);
-        return interaction.reply({ content: 'You are now verified!', ephemeral: true });
+        const result = await verifyUser(member, guild, verifiedRoleId);
+        return interaction.reply({ content: result.message, ephemeral: true });
       }
     } catch (err) {
       console.error('button handler error', err);

@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "register": "node register-commands.js"
+    "register": "node register-commands.js",
+    "dev": "node --watch index.js"
   },
   "dependencies": {
     "discord.js": "^14.11.0",
