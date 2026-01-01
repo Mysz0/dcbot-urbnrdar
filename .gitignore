@@ -15,7 +15,6 @@ npm-debug.log*
 Thumbs.db
 
 # Data / Databases
-data/role-mappings.json
 *.sqlite
 *.sqlite3
 
